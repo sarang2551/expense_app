@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Modal, Container, Stack, Divider, FormControl, InputLabel, Select, MenuItem, Button, TextField, Alert, Typography } from '@mui/material';
-import axios from 'axios';
+import axiosClient from '../util/setupAxios';
 
 const Home = () => {
+    const axios = axiosClient();
     const [modalOpen, setModalOpen] = useState(false);
     const [formData, setFormData] = useState({
         itemName: '',
@@ -42,19 +43,21 @@ const Home = () => {
             return;
         }
 
-        // try {
-        //     const response = await axios.post('http://localhost:3000/expenses', {
-        //         ...formData,
-        //         amount: parseFloat(formData.amount), // Parse amount before sending
-        //     });
-
-        //     console.log('Expense added:', response.data);
-        //     setSuccessMessage("Expense added successfully")
-        //     modalToggle();
-        // } catch (err) {
-        //     console.error('Error adding expense:', err);
-        //     setError('Failed to add expense. Please try again.');
-        // }
+        try {
+            const response = await axios.post('expense/add', {
+                ...formData,
+                amount: parseFloat(formData.amount), // Parse amount before sending
+            });
+            if(response.status !== 200) {
+                setError('Failed to add expense. Please try again.');
+                return;
+            }
+            setSuccessMessage("Expense added successfully")
+            modalToggle();
+        } catch (err) {
+            console.error('Error adding expense:', err);
+            setError('Failed to add expense. Please try again.');
+        }
     };
 
     return (

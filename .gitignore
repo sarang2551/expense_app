@@ -2,8 +2,10 @@
 
 # dependencies
 frontend/node_modules
+frontend/.env
 /.pnp
 .pnp.js
+backend/.flaskenv
 
 # testing
 /coverage
