@@ -5,7 +5,9 @@ frontend/node_modules
 frontend/.env
 /.pnp
 .pnp.js
-backend/.flaskenv
+backend_flask/.env
+backend_node/node_modules
+backend_node/.env
 
 # testing
 /coverage

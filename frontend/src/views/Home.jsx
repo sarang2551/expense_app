@@ -1,15 +1,14 @@
-import React, { useState } from 'react';
-import { Modal, Container, Stack, Divider, FormControl, InputLabel, Select, MenuItem, Button, TextField, Alert, Typography } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Modal, Container, Stack, Divider, FormControl, InputLabel, Select, MenuItem, Button, TextField, Alert, Typography, IconButton } from '@mui/material';
 import axiosClient from '../util/setupAxios';
+import ItemsGrid from '../components/ItemsGrid';
+import HomeIcon from '@mui/icons-material/Home';
+import {useNavigate} from 'react-router-dom';
 
 const Home = () => {
     const axios = axiosClient();
-    function getCookie(name) {
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop().split(';').shift();
-      }
-    
+    const navigate = useNavigate();
+    const [items, setItems] = useState([]);
     const [modalOpen, setModalOpen] = useState(false);
     const [formData, setFormData] = useState({
         itemName: '',
@@ -30,7 +29,20 @@ const Home = () => {
         setFormData({ ...formData, [event.target.name]: event.target.value });
     };
 
-    const addExpense = async () => {
+    const getItems = async () => {  
+        try {
+            const response = await axios.get('/user/expenses');
+            if(response.status !== 200) {
+                setError('Failed to get items:', response.data.message);
+                return;
+            }
+            setItems(response.data.expenses??[]);
+        } catch (err) {
+            console.error('Error getting items:', err);
+        }
+    }
+
+    const add_expense = async () => {
         setError(null);
         setSuccessMessage(null);
 
@@ -50,32 +62,79 @@ const Home = () => {
         }
 
         try {
-            const csrfToken = localStorage.getItem('csrf_token');
             const response = await axios.post('/expense/add', {
                 ...formData,
                 amount: parseFloat(formData.amount), // Parse amount before sending
-            },{headers: {
-                'X-CSRF-TOKEN': csrfToken,
-                'Content-Type': 'application/json',
-            }});
+            });
             if(response.status !== 201) {
                 setError('Failed to add expense. Please try again.');
                 return;
             }
             setSuccessMessage("Expense added successfully")
             modalToggle();
+            await getItems();
         } catch (err) {
             console.error('Error adding expense:', err);
             setError('Failed to add expense. Please try again.');
         }
     };
 
+        const delete_expense = async (expense_id) => {
+        if (window.confirm("Are you sure you want to delete this expense?")) {
+          try {
+            const response = await axios.delete(`/expense/delete/${expense_id}`);
+      
+            if (response.status !== 200) {
+              alert(`Failed to delete expense: ${response.data.message}`);
+            }
+
+            await getItems(); // Refresh or update the expense list
+          } catch (error) {
+            setError(error.message); // Set a user-friendly error message using the error object
+          }
+        }
+      };
+
+    const edit_expense = async (expense_obj) => {
+        if(!expense_obj){
+            console.log("Expense object is missing for the edit function")
+            return;
+        }
+        const {id} = expense_obj
+        try {
+            const response = await axios.put(`expense/update/${id}`, expense_obj);
+            if(response.status !== 200) {
+                setError('Failed to edit item:', response.data.message);
+                return;
+            }
+            await getItems();
+        }catch(err) {
+            setError(err)
+        }
+    }
+
+    const logOut = async() => {
+        try{
+            localStorage.clear() // clear everything
+            navigate('/')
+        }catch(err){
+            console.log(err)
+        }
+    }
+
+    useEffect(() => {
+        getItems();
+    }, []);
+
     return (
-        <>
+        <> 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Stack direction={'column'} spacing={2}>
+            <Stack direction={'column'} spacing={2} marginTop={5}>
+            <IconButton variant='outlined' onClick={logOut}>
+            <HomeIcon style={{height:40,width:40}}/>
+            </IconButton>
             <Typography variant='h3'>Add Expense</Typography>
-            <Button  onClick={modalToggle}>Add +</Button>
+            <Button variant='outlined'  onClick={modalToggle}>Add +</Button>
             </Stack>
         
         </div>
@@ -113,7 +172,7 @@ const Home = () => {
                                 fullWidth
                                 required
                             />
-                            <FormControl fullWidth required> {/* Added FormControl for Select */}
+                            <FormControl fullWidth required> 
                                 <InputLabel id="category-label">Category</InputLabel>
                                 <Select
                                     labelId="category-label"
@@ -133,7 +192,7 @@ const Home = () => {
                                     <MenuItem value="Other">Other</MenuItem>
                                 </Select>
                             </FormControl>
-                            <Button variant="contained" color="success" onClick={addExpense}>
+                            <Button variant="contained" color="success" onClick={add_expense}>
                                 Add
                             </Button>
                         </FormControl>
@@ -141,6 +200,7 @@ const Home = () => {
                 </Container>
             </Modal>
         )}
+        <ItemsGrid items={items} handleDelete={delete_expense} handleEdit={edit_expense}/>
         </>
     );
 };

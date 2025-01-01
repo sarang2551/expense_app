@@ -8,7 +8,7 @@ const Auth = () => {
     const [formData, setFormData] = useState({
         username: '',
         password: '',
-        confirmPassword: '', // For registration
+        confirmPassword: '',
     });
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);   
@@ -41,6 +41,12 @@ const Auth = () => {
             });
 
             if(response.status === 200 && isLogin){
+                const {jwt_token} = response.data
+                if(!jwt_token){ 
+                    setError("JWT_Token is invalid")
+                    return;
+                }
+                localStorage.setItem("jwt_token",jwt_token);
                 navigate('/home');
             }
             else if(response.status === 201 && !isLogin){
