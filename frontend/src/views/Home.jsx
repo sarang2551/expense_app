@@ -4,6 +4,12 @@ import axiosClient from '../util/setupAxios';
 
 const Home = () => {
     const axios = axiosClient();
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+      }
+    
     const [modalOpen, setModalOpen] = useState(false);
     const [formData, setFormData] = useState({
         itemName: '',
@@ -44,11 +50,15 @@ const Home = () => {
         }
 
         try {
-            const response = await axios.post('expense/add', {
+            const csrfToken = localStorage.getItem('csrf_token');
+            const response = await axios.post('/expense/add', {
                 ...formData,
                 amount: parseFloat(formData.amount), // Parse amount before sending
-            });
-            if(response.status !== 200) {
+            },{headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                'Content-Type': 'application/json',
+            }});
+            if(response.status !== 201) {
                 setError('Failed to add expense. Please try again.');
                 return;
             }
