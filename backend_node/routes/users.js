@@ -88,6 +88,35 @@ router.get('/expenses',async(req,res)=>{
     console.log(err)
     return res.status(500).json({message:"Internal server error"})
   }
-})
+});
+
+router.get("/total_expenses", async (req, res) => {
+  try {
+    if (!req.headers.authorization) {
+      return res.status(401).json({ message: "Missing Authorization header" });
+    }
+
+    const token = req.headers.authorization.split(" ")[1];
+    const user_id = jwt.verify(token, process.env.JWT_SECRET).userId;
+
+    const result = await Expense.aggregate([
+      { $match: { user_id: new mongoose.Types.ObjectId(user_id) } }, // Match expenses for the user
+      {
+        $group: {
+          _id: null, // Group all documents into a single group
+          total: { $sum: "$amount" }, // Calculate the sum of the 'amount' field
+        },
+      },
+    ]);
+
+    // Handle the case where no expenses are found (result will be an empty array)
+    const total = result.length > 0 ? result[0].total : 0;
+
+    return res.status(200).json({ total });
+  } catch (err) {
+    console.error(err); // Use console.error for error logging
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
 
 module.exports = router;
